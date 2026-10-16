@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { width: 320px; padding: 10px; font-family: sans-serif; }
+    .status { margin-bottom: 10px; font-weight: bold; }
+    .warning { color: #d32f2f; font-size: 0.8em; margin: 10px 0; }
+    .info { color: #555; font-size: 0.8em; margin: 6px 0; }
+    button { width: 100%; margin: 5px 0; padding: 8px; cursor: pointer; }
+    #stats { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+    label { display: block; font-size: 0.85em; font-weight: bold; margin: 10px 0 4px; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: 6px; }
+    textarea { min-height: 88px; resize: vertical; font-family: monospace; font-size: 12px; }
+    .help { color: #666; font-size: 0.8em; margin-top: 4px; }
+    .group-scan { border: 1px solid #ddd; padding: 8px; margin-bottom: 12px; }
+    .group-scan h2 { font-size: 1em; margin: 0 0 6px; }
+    .group-scan p { font-size: 0.8em; color: #555; margin: 5px 0; }
+    #scan_status { font-size: 0.82em; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="status">FB Group Collector</div>
+  <section class="group-scan">
+    <h2>Meus grupos: ID + nome</h2>
+    <p>Selecione no Facebook o perfil ou Página cujos grupos deseja exportar.</p>
+    <button id="open_my_groups">Abrir lista de grupos</button>
+    <button id="scan_my_groups">Coletar esta lista</button>
+    <div id="scan_status" role="status"></div>
+    <button id="download_groups">Baixar grupos em JSON</button>
+    <p>A lista rola automaticamente. Grupos sem ID numérico exposto saem com <code>id: null</code> e URL.</p>
+  </section>
+  <div id="stats">
+    Capturing: <span id="cap_status">OFF</span><br/>
+    Responses: <span id="cap_count">0</span><br/>
+    Storage: <span id="cap_storage">0 KB</span>
+  </div>
+  <div id="download_status" class="warning" style="display:none"></div>
+  <label for="group_urls">Facebook Group URLs</label>
+  <textarea id="group_urls" placeholder="https://www.facebook.com/groups/1234567890/&#10;https://www.facebook.com/groups/example-group/"></textarea>
+  <div id="groups_help" class="info"></div>
+  <div id="groups_status" class="info"></div>
+  <button id="choose_groups_file">Choose URL File</button>
+  <button id="save_groups">Save Groups</button>
+  <button id="open_groups">Open Groups</button>
+  <label for="download_dir">Download Subfolder</label>
+  <input id="download_dir" type="text" />
+  <div class="help">
+    Relative to Chrome's download directory. Set Chrome's base download directory once if you want this to land inside your repo.
+  </div>
+  <button id="toggle">Start Capturing</button>
+  <button id="download">Download fb_posts.json</button>
+  <button id="clear">Clear Storage</button>
+  <div class="warning">
+    ⚠ Data is lost if you close the browser without downloading.
+  </div>
+  <div class="info">
+    Batch capture exports one combined file even if you scroll multiple group tabs.
+  </div>
+  <div id="quota_warn" class="warning" style="display:none">
+    ⚠ Large capture (20MB+) - download and clear soon.
+  </div>
+  <div id="unsaved_warn" class="warning" style="display:none"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

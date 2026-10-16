@@ -1,0 +1,80 @@
+// Runs in MAIN world - can access and patch page's fetch/XHR
+// Broadcasts captured responses via CustomEvent (MAIN->ISOLATED bridge)
+
+(function() {
+  if (window.__FBGC_PATCHED__) {
+    return;
+  }
+  window.__FBGC_PATCHED__ = true;
+  window.__FBGC_BRIDGE_ONLINE__ = true;
+
+  const log = (...args) => console.info('FBGC[main]:', ...args);
+  const warn = (...args) => console.warn('FBGC[main]:', ...args);
+
+  document.addEventListener('_fbgc_bridge_offline', () => {
+    if (window.__FBGC_BRIDGE_ONLINE__) {
+      warn('Relay bridge went offline; reload the extension and refresh the page');
+    }
+    window.__FBGC_BRIDGE_ONLINE__ = false;
+  });
+
+  if (typeof window.fetch !== 'function' || typeof window.XMLHttpRequest !== 'function') {
+    warn('fetch/XHR unavailable; capture hooks not installed');
+    return;
+  }
+
+  log('Installing fetch/XHR capture hooks');
+
+  const origFetch = window.fetch;
+  function emitCapturedResponse(text) {
+    if (!window.__FBGC_BRIDGE_ONLINE__) {
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('_fbgc', {
+      detail: {
+        text,
+        pageTitle: document.title || '',
+        pageUrl: window.location.href || '',
+      },
+    }));
+  }
+
+  window.fetch = async function(...args) {
+    const response = await origFetch.apply(this, args);
+    const url = (typeof args[0] === 'string' ? args[0] : args[0]?.url) ?? '';
+    if (url.includes('/api/graphql')) {
+      response.clone().text().then((text) => {
+        emitCapturedResponse(text);
+      }).catch((err) => {
+        console.error('FBGC[main]: error reading fetch response body', err);
+      });
+    }
+    return response;
+  };
+
+  const OrigXHR = window.XMLHttpRequest;
+  function CustomXHR() {
+    const xhr = new OrigXHR();
+    const origOpen = xhr.open;
+    let isGraphQL = false;
+
+    xhr.open = function(method, url) {
+      if (typeof url === 'string' && url.includes('/api/graphql')) {
+        isGraphQL = true;
+      }
+      return origOpen.apply(this, arguments);
+    };
+
+    xhr.addEventListener('load', function() {
+      if (isGraphQL && xhr.responseText) {
+        emitCapturedResponse(xhr.responseText);
+      }
+    });
+
+    return xhr;
+  }
+  window.XMLHttpRequest = CustomXHR;
+  window.XMLHttpRequest.prototype = OrigXHR.prototype;
+  Object.assign(window.XMLHttpRequest, OrigXHR);
+  log('Capture hooks installed');
+})();
